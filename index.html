@@ -47,6 +47,10 @@
             const loadingId = 'loading-' + Date.now();
             appendMessage("⏳ جاري التفكير...", 'ai-msg', loadingId);
 
+            // نمنح البوت 60 ثانية ليرد قبل إظهار خطأ
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 60000); 
+
             try {
                 const res = await fetch('https://voxa-3a7ac828dfb6.herokuapp.com/webhook/9e69bf82-0dfa-4a70-aab9-fb169d28e3e5', {
                     method: 'POST',
@@ -54,18 +58,19 @@
                     body: JSON.stringify({ 
                         chatInput: userText,
                         sessionId: sessionId 
-                    })
+                    }),
+                    signal: controller.signal
                 });
                 
+                clearTimeout(timeoutId);
                 const data = await res.json();
-                console.log("البيانات المستلمة:", data); // مفيد جداً للتشخيص!
                 
-                // هنا نقوم بعرض البيانات الخام إذا لم نجد نصاً واضحاً
+                // البحث الذكي عن النص في الرد القادم من n8n
                 const msgElement = document.getElementById(loadingId);
-                msgElement.innerText = data.output || data.text || data.response || JSON.stringify(data);
+                msgElement.innerText = data.output || data.text || data.response || data.answer || JSON.stringify(data);
                 
             } catch (e) {
-                document.getElementById(loadingId).innerText = "حدث خطأ في الاتصال، تأكد من n8n.";
+                document.getElementById(loadingId).innerText = "عذراً، البوت استغرق وقتاً طويلاً. تأكد من إعدادات الـ n8n.";
             }
             window.scrollTo(0, document.body.scrollHeight);
         }
